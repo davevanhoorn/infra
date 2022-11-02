@@ -1,29 +1,31 @@
-import argparse, os, sys, datetime, glob, importlib, csv
-from ldm.modules.pruningckptio import PruningCheckpointIO
-import numpy as np
+import argparse
+import datetime
+import glob
+import os
+import sys
 import time
-import torch
-
-import torchvision
-import pytorch_lightning as pl
-
-from packaging import version
-from omegaconf import OmegaConf
-from torch.utils.data import random_split, DataLoader, Dataset, Subset
 from functools import partial
-from PIL import Image
 
-from pytorch_lightning import seed_everything
-from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, Callback, LearningRateMonitor
-from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities import rank_zero_info
-
+import numpy as np
+import pytorch_lightning as pl
+import torch
+import torchvision
 from ldm.data.base import Txt2ImgIterableBaseDataset
+from ldm.modules.pruningckptio import PruningCheckpointIO
 from ldm.util import instantiate_from_config
+from omegaconf import OmegaConf
+from packaging import version
+from PIL import Image
+from pytorch_lightning import seed_everything
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.trainer import Trainer
+from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.utilities.distributed import rank_zero_only
+from torch.utils.data import DataLoader, Dataset
 
-## Un-comment this for windows
+# Un-comment this for windows
 ## os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "gloo"
+
 
 def load_model_from_config(config, ckpt, verbose=False):
     print(f"Loading model from {ckpt}")
@@ -41,6 +43,7 @@ def load_model_from_config(config, ckpt, verbose=False):
 
     model.cuda()
     return model
+
 
 def get_parser(**parser_kwargs):
     def str2bool(v):
@@ -162,41 +165,41 @@ def get_parser(**parser_kwargs):
         required=True,
         help="Unique token you want to represent your trained model. Ex: firstNameLastName.")
 
-    parser.add_argument("--token_only", 
-        type=str2bool,
-        const=True,
-        default=False,
-        nargs="?",
-        help="Train only using the token and no class.")
+    parser.add_argument("--token_only",
+                        type=str2bool,
+                        const=True,
+                        default=False,
+                        nargs="?",
+                        help="Train only using the token and no class.")
 
-    parser.add_argument("--actual_resume", 
-        type=str,
-        required=True,
-        help="Path to model to actually resume from")
+    parser.add_argument("--actual_resume",
+                        type=str,
+                        required=True,
+                        help="Path to model to actually resume from")
 
-    parser.add_argument("--data_root", 
-        type=str, 
-        required=True, 
-        help="Path to directory with training images")
-    
-    parser.add_argument("--reg_data_root", 
-        type=str, 
-        required=False, 
-        help="Path to directory with regularization images")
+    parser.add_argument("--data_root",
+                        type=str,
+                        required=True,
+                        help="Path to directory with training images")
 
-    parser.add_argument("--embedding_manager_ckpt", 
-        type=str, 
-        default="", 
-        help="Initialize embedding manager from a checkpoint")
+    parser.add_argument("--reg_data_root",
+                        type=str,
+                        required=False,
+                        help="Path to directory with regularization images")
 
-    parser.add_argument("--class_word", 
-        type=str,
-        required=False,
-        help="Match class_word to the category of images you want to train. Example: 'man', 'woman', or 'dog'.")
+    parser.add_argument("--embedding_manager_ckpt",
+                        type=str,
+                        default="",
+                        help="Initialize embedding manager from a checkpoint")
 
-    parser.add_argument("--init_words", 
-        type=str, 
-        help="Comma separated list of words used to initialize the embeddigs for training.")
+    parser.add_argument("--class_word",
+                        type=str,
+                        required=False,
+                        help="Match class_word to the category of images you want to train. Example: 'man', 'woman', or 'dog'.")
+
+    parser.add_argument("--init_words",
+                        type=str,
+                        help="Comma separated list of words used to initialize the embeddigs for training.")
 
     return parser
 
@@ -230,11 +233,13 @@ def worker_init_fn(_):
     if isinstance(dataset, Txt2ImgIterableBaseDataset):
         split_size = dataset.num_records // worker_info.num_workers
         # reset num_records to the true number to retain reliable length information
-        dataset.sample_ids = dataset.valid_ids[worker_id * split_size:(worker_id + 1) * split_size]
+        dataset.sample_ids = dataset.valid_ids[worker_id *
+                                               split_size:(worker_id + 1) * split_size]
         current_id = np.random.choice(len(np.random.get_state()[1]), 1)
         return np.random.seed(np.random.get_state()[1][current_id] + worker_id)
     else:
         return np.random.seed(np.random.get_state()[1][0] + worker_id)
+
 
 class ConcatDataset(Dataset):
     def __init__(self, *datasets):
@@ -245,9 +250,10 @@ class ConcatDataset(Dataset):
 
     def __len__(self):
         return min(len(d) for d in self.datasets)
-    
+
+
 class DataModuleFromConfig(pl.LightningDataModule):
-    def __init__(self, batch_size, train=None, reg = None, validation=None, test=None, predict=None,
+    def __init__(self, batch_size, train=None, reg=None, validation=None, test=None, predict=None,
                  wrap=False, num_workers=None, shuffle_test_loader=False, use_worker_init_fn=False,
                  shuffle_val_dataloader=False):
         super().__init__()
@@ -259,15 +265,17 @@ class DataModuleFromConfig(pl.LightningDataModule):
             self.dataset_configs["train"] = train
         if reg is not None:
             self.dataset_configs["reg"] = reg
-        
+
         self.train_dataloader = self._train_dataloader
-        
+
         if validation is not None:
             self.dataset_configs["validation"] = validation
-            self.val_dataloader = partial(self._val_dataloader, shuffle=shuffle_val_dataloader)
+            self.val_dataloader = partial(
+                self._val_dataloader, shuffle=shuffle_val_dataloader)
         if test is not None:
             self.dataset_configs["test"] = test
-            self.test_dataloader = partial(self._test_dataloader, shuffle=shuffle_test_loader)
+            self.test_dataloader = partial(
+                self._test_dataloader, shuffle=shuffle_test_loader)
         if predict is not None:
             self.dataset_configs["predict"] = predict
             self.predict_dataloader = self._predict_dataloader
@@ -286,7 +294,8 @@ class DataModuleFromConfig(pl.LightningDataModule):
                 self.datasets[k] = WrappedDataset(self.datasets[k])
 
     def _train_dataloader(self):
-        is_iterable_dataset = isinstance(self.datasets['train'], Txt2ImgIterableBaseDataset)
+        is_iterable_dataset = isinstance(
+            self.datasets['train'], Txt2ImgIterableBaseDataset)
         if is_iterable_dataset or self.use_worker_init_fn:
             init_fn = worker_init_fn
         else:
@@ -313,7 +322,8 @@ class DataModuleFromConfig(pl.LightningDataModule):
                           shuffle=shuffle)
 
     def _test_dataloader(self, shuffle=False):
-        is_iterable_dataset = isinstance(self.datasets['train'], Txt2ImgIterableBaseDataset)
+        is_iterable_dataset = isinstance(
+            self.datasets['train'], Txt2ImgIterableBaseDataset)
         if is_iterable_dataset or self.use_worker_init_fn:
             init_fn = worker_init_fn
         else:
@@ -360,7 +370,8 @@ class SetupCallback(Callback):
 
             if "callbacks" in self.lightning_config:
                 if 'metrics_over_trainsteps_checkpoint' in self.lightning_config['callbacks']:
-                    os.makedirs(os.path.join(self.ckptdir, 'trainstep_checkpoints'), exist_ok=True)
+                    os.makedirs(os.path.join(
+                        self.ckptdir, 'trainstep_checkpoints'), exist_ok=True)
             print("Project config")
             print(OmegaConf.to_yaml(self.config))
             OmegaConf.save(self.config,
@@ -394,7 +405,8 @@ class ImageLogger(Callback):
         self.logger_log_images = {
             pl.loggers.TestTubeLogger: self._testtube,
         }
-        self.log_steps = [2 ** n for n in range(int(np.log2(self.batch_freq)) + 1)]
+        self.log_steps = [
+            2 ** n for n in range(int(np.log2(self.batch_freq)) + 1)]
         if not increase_log_steps:
             self.log_steps = [self.batch_freq]
         self.clamp = clamp
@@ -447,7 +459,8 @@ class ImageLogger(Callback):
                 pl_module.eval()
 
             with torch.no_grad():
-                images = pl_module.log_images(batch, split=split, **self.log_images_kwargs)
+                images = pl_module.log_images(
+                    batch, split=split, **self.log_images_kwargs)
 
             for k in images:
                 N = min(images[k].shape[0], self.max_images)
@@ -460,7 +473,8 @@ class ImageLogger(Callback):
             self.log_local(pl_module.logger.save_dir, split, images,
                            pl_module.global_step, pl_module.current_epoch, batch_idx)
 
-            logger_log_images = self.logger_log_images.get(logger, lambda *args, **kwargs: None)
+            logger_log_images = self.logger_log_images.get(
+                logger, lambda *args, **kwargs: None)
             logger_log_images(pl_module, images, pl_module.global_step, split)
 
             if is_train:
@@ -483,11 +497,11 @@ class ImageLogger(Callback):
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         pass
-        #if not self.disabled and pl_module.global_step > 0:
-            #self.log_img(pl_module, batch, batch_idx, split="val")
-        #if hasattr(pl_module, 'calibrate_grad_norm'):
-            #if (pl_module.calibrate_grad_norm and batch_idx % 25 == 0) and batch_idx > 0:
-                #self.log_gradients(trainer, pl_module, batch_idx=batch_idx)
+        # if not self.disabled and pl_module.global_step > 0:
+        #self.log_img(pl_module, batch, batch_idx, split="val")
+        # if hasattr(pl_module, 'calibrate_grad_norm'):
+        # if (pl_module.calibrate_grad_norm and batch_idx % 25 == 0) and batch_idx > 0:
+        #self.log_gradients(trainer, pl_module, batch_idx=batch_idx)
 
 
 class CUDACallback(Callback):
@@ -500,7 +514,8 @@ class CUDACallback(Callback):
 
     def on_train_epoch_end(self, trainer, pl_module):
         torch.cuda.synchronize(trainer.root_gpu)
-        max_memory = torch.cuda.max_memory_allocated(trainer.root_gpu) / 2 ** 20
+        max_memory = torch.cuda.max_memory_allocated(
+            trainer.root_gpu) / 2 ** 20
         epoch_time = time.time() - self.start_time
 
         try:
@@ -511,6 +526,7 @@ class CUDACallback(Callback):
             rank_zero_info(f"Average Peak memory {max_memory:.2f}MiB")
         except AttributeError:
             pass
+
 
 class ModeSwapCallback(Callback):
 
@@ -527,6 +543,7 @@ class ModeSwapCallback(Callback):
         if trainer.global_step > self.swap_step and self.is_frozen:
             self.is_frozen = False
             trainer.optimizers = [pl_module.configure_opt_model()]
+
 
 if __name__ == "__main__":
     # custom parser to specify config files, train, test and debug mode,
@@ -602,7 +619,8 @@ if __name__ == "__main__":
             ckpt = os.path.join(logdir, "checkpoints", "last.ckpt")
 
         opt.resume_from_checkpoint = ckpt
-        base_configs = sorted(glob.glob(os.path.join(logdir, "configs/*.yaml")))
+        base_configs = sorted(
+            glob.glob(os.path.join(logdir, "configs/*.yaml")))
         opt.base = base_configs + opt.base
         _tmp = logdir.split("/")
         nowname = _tmp[-1]
@@ -618,8 +636,8 @@ if __name__ == "__main__":
 
         if opt.datadir_in_name:
             now = os.path.basename(os.path.normpath(opt.data_root)) + now
-            
-        nowname = now + name + opt.postfix
+
+        nowname = name + opt.postfix
         logdir = os.path.join(opt.logdir, nowname)
 
     ckptdir = os.path.join(logdir, "checkpoints")
@@ -652,9 +670,9 @@ if __name__ == "__main__":
         lightning_config.trainer = trainer_config
 
         if opt.init_words:
-            config.model.params.personalization_config.params.initializer_words = [ 
-                    init_word.strip() for init_word in opt.init_words.split(',')
-                ]
+            config.model.params.personalization_config.params.initializer_words = [
+                init_word.strip() for init_word in opt.init_words.split(',')
+            ]
 
         # if opt.init_word:
         #     config.model.params.personalization_config.params.initializer_words[0] = opt.init_word
@@ -666,7 +684,6 @@ if __name__ == "__main__":
             config.data.params.reg.params.data_root = opt.reg_data_root
             config.data.params.reg.params.coarse_class_text = opt.class_word
             config.data.params.reg.params.placeholder_token = opt.token
-        
 
         if opt.class_word:
             config.data.params.train.params.coarse_class_text = opt.class_word
@@ -733,11 +750,12 @@ if __name__ == "__main__":
         if "modelcheckpoint" in lightning_config:
             modelckpt_cfg = lightning_config.modelcheckpoint
         else:
-            modelckpt_cfg =  OmegaConf.create()
+            modelckpt_cfg = OmegaConf.create()
         modelckpt_cfg = OmegaConf.merge(default_modelckpt_cfg, modelckpt_cfg)
         print(f"Merged modelckpt-cfg: \n{modelckpt_cfg}")
         if version.parse(pl.__version__) < version.parse('1.4.0'):
-            trainer_kwargs["checkpoint_callback"] = instantiate_from_config(modelckpt_cfg)
+            trainer_kwargs["checkpoint_callback"] = instantiate_from_config(
+                modelckpt_cfg)
 
         # add callback which sets up log directory
         default_callbacks_cfg = {
@@ -773,7 +791,8 @@ if __name__ == "__main__":
             },
         }
         if version.parse(pl.__version__) >= version.parse('1.4.0'):
-            default_callbacks_cfg.update({'checkpoint_callback': modelckpt_cfg})
+            default_callbacks_cfg.update(
+                {'checkpoint_callback': modelckpt_cfg})
 
         if "callbacks" in lightning_config:
             callbacks_cfg = lightning_config.callbacks
@@ -786,17 +805,18 @@ if __name__ == "__main__":
                 'metrics_over_trainsteps_checkpoint': {
                     "target": 'pytorch_lightning.callbacks.ModelCheckpoint',
                     'params': {
-                         "dirpath": os.path.join(ckptdir, 'trainstep_checkpoints'),
-                         "filename": "{epoch:06}-{step:09}",
-                         "verbose": True,
-                         'save_top_k': -1,
-                         'every_n_train_steps': 10000,
-                         'save_weights_only': True
-                     }
+                        "dirpath": os.path.join(ckptdir, 'trainstep_checkpoints'),
+                        "filename": "{epoch:06}-{step:09}",
+                        "verbose": True,
+                        'save_top_k': -1,
+                        'every_n_train_steps': 10000,
+                        'save_weights_only': True
+                    }
                 }
             }
 
-            default_callbacks_cfg.update(default_metrics_over_trainsteps_ckpt_dict)
+            default_callbacks_cfg.update(
+                default_metrics_over_trainsteps_ckpt_dict)
 
         callbacks_cfg = OmegaConf.merge(default_callbacks_cfg, callbacks_cfg)
         if 'ignore_keys_callback' in callbacks_cfg and hasattr(trainer_opt, 'resume_from_checkpoint'):
@@ -804,12 +824,13 @@ if __name__ == "__main__":
         elif 'ignore_keys_callback' in callbacks_cfg:
             del callbacks_cfg['ignore_keys_callback']
 
-        trainer_kwargs["callbacks"] = [instantiate_from_config(callbacks_cfg[k]) for k in callbacks_cfg]
+        trainer_kwargs["callbacks"] = [instantiate_from_config(
+            callbacks_cfg[k]) for k in callbacks_cfg]
         trainer_kwargs["max_steps"] = trainer_opt.max_steps
         trainer_kwargs["plugins"] = PruningCheckpointIO()
-    
+
         trainer = Trainer.from_argparse_args(trainer_opt, **trainer_kwargs)
-        trainer.logdir = logdir  ###
+        trainer.logdir = logdir
 
         data = instantiate_from_config(config.data)
 
@@ -820,7 +841,8 @@ if __name__ == "__main__":
         data.setup()
         print("#### Data #####")
         for k in data.datasets:
-            print(f"{k}, {data.datasets[k].__class__.__name__}, {len(data.datasets[k])}")
+            print(
+                f"{k}, {data.datasets[k].__class__.__name__}, {len(data.datasets[k])}")
 
         # configure learning rate
         bs, base_lr = config.data.params.batch_size, config.model.base_learning_rate
@@ -844,8 +866,8 @@ if __name__ == "__main__":
             print("++++ NOT USING LR SCALING ++++")
             print(f"Setting learning rate to {model.learning_rate:.2e}")
 
-
         # allow checkpointing via USR1
+
         def melk(*args, **kwargs):
             # run all checkpoint hooks
             if trainer.global_rank == 0:
@@ -853,15 +875,12 @@ if __name__ == "__main__":
                 ckpt_path = os.path.join(ckptdir, "last.ckpt")
                 trainer.save_checkpoint(ckpt_path)
 
-
         def divein(*args, **kwargs):
             if trainer.global_rank == 0:
-                import pudb;
+                import pudb
                 pudb.set_trace()
 
-
         import signal
-
 
         # Changed to work with windows
         signal.signal(signal.SIGTERM, melk)

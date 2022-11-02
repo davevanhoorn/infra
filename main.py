@@ -637,7 +637,7 @@ if __name__ == "__main__":
         if opt.datadir_in_name:
             now = os.path.basename(os.path.normpath(opt.data_root)) + now
 
-        nowname = name + opt.postfix
+        nowname = now + name + opt.postfix
         logdir = os.path.join(opt.logdir, nowname)
 
     ckptdir = os.path.join(logdir, "checkpoints")

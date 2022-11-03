@@ -1,20 +1,20 @@
-import argparse, os, sys, glob
-import torch
-import numpy as np
-from omegaconf import OmegaConf
-from PIL import Image
-from tqdm import tqdm, trange
-from itertools import islice
-from einops import rearrange
-from torchvision.utils import make_grid, save_image
+import argparse
+import os
 import time
-from pytorch_lightning import seed_everything
-from torch import autocast
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
+from itertools import islice
 
-from ldm.util import instantiate_from_config
+import numpy as np
+import torch
+from einops import rearrange
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.plms import PLMSSampler
+from ldm.util import instantiate_from_config
+from PIL import Image
+from pytorch_lightning import seed_everything
+from torch import autocast
+from torchvision.utils import make_grid, save_image
+from tqdm import tqdm, trange
 
 
 def chunk(it, size):
@@ -51,6 +51,12 @@ def main():
         nargs="?",
         default="a painting of a virus monster playing guitar",
         help="the prompt to render"
+    )
+    parser.add_argument(
+        "--imagename",
+        type=str,
+        default="imagename",
+        help="the imagenames of the files"
     )
     parser.add_argument(
         "--outdir",
@@ -160,7 +166,7 @@ def main():
         type=str,
         default="models/ldm/stable-diffusion-v1/model.ckpt",
         help="path to checkpoint of model",
-    )    
+    )
     parser.add_argument(
         "--seed",
         type=int,
@@ -175,10 +181,9 @@ def main():
         default="autocast"
     )
 
-
     parser.add_argument(
-        "--embedding_path", 
-        type=str, 
+        "--embedding_path",
+        type=str,
         help="Path to a pre-trained embedding manager checkpoint")
 
     opt = parser.parse_args()
@@ -193,9 +198,10 @@ def main():
 
     config = OmegaConf.load(f"{opt.config}")
     model = load_model_from_config(config, f"{opt.ckpt}")
-    #model.embedding_manager.load(opt.embedding_path)
+    # model.embedding_manager.load(opt.embedding_path)
 
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device(
+        "cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = model.to(device)
 
     if opt.plms:
@@ -226,9 +232,10 @@ def main():
 
     start_code = None
     if opt.fixed_code:
-        start_code = torch.randn([opt.n_samples, opt.C, opt.H // opt.f, opt.W // opt.f], device=device)
+        start_code = torch.randn(
+            [opt.n_samples, opt.C, opt.H // opt.f, opt.W // opt.f], device=device)
 
-    precision_scope = autocast if opt.precision=="autocast" else nullcontext
+    precision_scope = autocast if opt.precision == "autocast" else nullcontext
     with torch.no_grad():
         with precision_scope("cuda"):
             with model.ema_scope():
@@ -238,7 +245,8 @@ def main():
                     for prompts in tqdm(data, desc="data"):
                         uc = None
                         if opt.scale != 1.0:
-                            uc = model.get_learned_conditioning(batch_size * [""])
+                            uc = model.get_learned_conditioning(
+                                batch_size * [""])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
                         c = model.get_learned_conditioning(prompts)
@@ -254,11 +262,14 @@ def main():
                                                          x_T=start_code)
 
                         x_samples_ddim = model.decode_first_stage(samples_ddim)
-                        x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
+                        x_samples_ddim = torch.clamp(
+                            (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
 
                         if not opt.skip_save:
                             for x_sample in x_samples_ddim:
-                                x_sample = 255. * rearrange(x_sample.cpu().numpy(), 'c h w -> h w c')
+                                x_sample = 255. * \
+                                    rearrange(x_sample.cpu().numpy(),
+                                              'c h w -> h w c')
                                 Image.fromarray(x_sample.astype(np.uint8)).save(
                                     os.path.join(sample_path, f"{base_count:05}.jpg"))
                                 base_count += 1
@@ -270,17 +281,18 @@ def main():
                     # additionally, save as grid
                     grid = torch.stack(all_samples, 0)
                     grid = rearrange(grid, 'n b c h w -> (n b) c h w')
-                    
+
                     for i in range(grid.size(0)):
-                        save_image(grid[i, :, :, :], os.path.join(outpath,opt.prompt+'_{}.png'.format(i)))
+                        save_image(grid[i, :, :, :], os.path.join(
+                            outpath, opt.imagename.replace(" ", "-")+'_{}.png'.format(i)))
                     grid = make_grid(grid, nrow=n_rows)
 
                     # to image
-                    grid = 255. * rearrange(grid, 'c h w -> h w c').cpu().numpy()
-                    Image.fromarray(grid.astype(np.uint8)).save(os.path.join(outpath, f'{prompt.replace(" ", "-")}-{grid_count:04}.jpg'))
+                    grid = 255. * \
+                        rearrange(grid, 'c h w -> h w c').cpu().numpy()
+                    Image.fromarray(grid.astype(np.uint8)).save(os.path.join(
+                        outpath, f'{opt.imagename.replace(" ", "-")}-{grid_count:04}.jpg'))
                     grid_count += 1
-                    
-                    
 
                 toc = time.time()
 

@@ -268,8 +268,8 @@ def main():
                         if not opt.skip_save:
                             for x_sample in x_samples_ddim:
                                 x_sample = 255. * rearrange(x_sample.cpu().numpy(), 'c h w -> h w c')
-                                Image.fromarray(x_sample.astype(np.uint8)).save(
-                                    os.path.join(sample_path, f"{base_count:05}.jpg"))
+                                # Image.fromarray(x_sample.astype(np.uint8)).save(
+                                #     os.path.join(sample_path, f"{base_count:05}.jpg"))
                                 base_count += 1
 
                         if not opt.skip_grid:
@@ -285,9 +285,9 @@ def main():
                     grid = make_grid(grid, nrow=n_rows)
 
                     # to image
-                    grid = 255. * rearrange(grid, 'c h w -> h w c').cpu().numpy()
-                    Image.fromarray(grid.astype(np.uint8)).save(os.path.join(outpath, f'{opt.filename.replace(" ", "-")}-{grid_count:04}.jpg'))
-                    grid_count += 1
+                    # grid = 255. * rearrange(grid, 'c h w -> h w c').cpu().numpy()
+                    # Image.fromarray(grid.astype(np.uint8)).save(os.path.join(outpath, f'{opt.filename.replace(" ", "-")}-{grid_count:04}.jpg'))
+                    # grid_count += 1
                     
                     
 

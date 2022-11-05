@@ -294,7 +294,7 @@ def main():
                             print(latest_file_number)
                             png_number = png_number + latest_file_number
 
-                        save_image(grid[i, :, :, :], os.path.join(outpath, opt.filename.replace(" ", "-") + '_' + png_number + '.png'))
+                        save_image(grid[i, :, :, :], os.path.join(outpath, opt.filename.replace(" ", "-") + '_' + str(png_number) + '.png'))
       
                 toc = time.time()
 

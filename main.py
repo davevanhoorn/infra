@@ -574,7 +574,7 @@ if __name__ == "__main__":
     #           params:
     #               key: value
 
-    now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+    now = 'now_'
 
     # add cwd for convenience and to make classes in this file available when
     # running as `python main.py`

@@ -10,7 +10,6 @@ from itertools import islice
 from pathlib import Path
 
 import numpy as np
-import requests
 import torch
 from einops import rearrange
 from ldm.models.diffusion.ddim import DDIMSampler
@@ -288,11 +287,11 @@ def main():
 
                     if not my_file.is_file():
                         print('images.zip does not exist')
-                        with zipfile.ZipFile('images.zip', 'w') as img_zip:
+                        with zipfile.ZipFile('images.zip', 'w') as zf:
                             for image_path in list_of_files:
-                                img_name = os.path.basename(image_path)
-                                img_data = requests.get(image_path).content
-                                img_zip.writestr(img_name, img_data)
+                                image_file_name = Path(image_path).stem
+                                print(image_file_name)
+                                zf.write(image_path, arcname=image_file_name + '.png')
 
                     print("Exiting - more than 5 images in directory and archive exists.")
                     return

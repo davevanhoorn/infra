@@ -63,7 +63,7 @@ def get_parser(**parser_kwargs):
         "--name",
         type=str,
         const=True,
-        default="",
+        default="project_name",
         nargs="?",
         help="postfix for logdir",
     )
@@ -83,14 +83,14 @@ def get_parser(**parser_kwargs):
         metavar="base_config.yaml",
         help="paths to base configs. Loaded from left-to-right. "
              "Parameters can be overwritten or added with command-line options of the form `--key value`.",
-        default=list(),
+        default="configs/stable-diffusion/v1-finetune_unfrozen.yaml",
     )
     parser.add_argument(
         "-t",
         "--train",
         type=str2bool,
         const=True,
-        default=False,
+        default=True,
         nargs="?",
         help="train",
     )
@@ -98,7 +98,7 @@ def get_parser(**parser_kwargs):
         "--no-test",
         type=str2bool,
         const=True,
-        default=False,
+        default=True,
         nargs="?",
         help="disable test",
     )
@@ -134,7 +134,7 @@ def get_parser(**parser_kwargs):
         "-l",
         "--logdir",
         type=str,
-        default="logs",
+        default="log_dir",
         help="directory for logging dat shit",
     )
     parser.add_argument(
@@ -151,18 +151,20 @@ def get_parser(**parser_kwargs):
         type=str2bool,
         nargs="?",
         const=True,
-        default=True,
+        default=False,
         help="Prepend the final directory in the data_root to the output directory name")
 
     parser.add_argument(
         "--max_training_steps",
         type=int,
         required=True,
+        default=2000,
         help="Number of training steps to run")
 
     parser.add_argument(
         "--token",
         type=str,
+        default="firstNameLastName",
         required=True,
         help="Unique token you want to represent your trained model. Ex: firstNameLastName.")
 
@@ -176,11 +178,13 @@ def get_parser(**parser_kwargs):
     parser.add_argument("--actual_resume", 
         type=str,
         required=True,
+        default="model.ckpt",
         help="Path to model to actually resume from")
 
     parser.add_argument("--data_root", 
         type=str, 
         required=True, 
+        default="training_images",
         help="Path to directory with training images")
     
     parser.add_argument("--reg_data_root", 

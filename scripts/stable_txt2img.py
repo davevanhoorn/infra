@@ -69,7 +69,7 @@ def main():
         type=str,
         nargs="?",
         help="dir to write results to",
-        default="outputs/txt2img-samples"
+        default="output_images"
     )
     parser.add_argument(
         "--skip_grid",
@@ -170,7 +170,7 @@ def main():
     parser.add_argument(
         "--ckpt",
         type=str,
-        default="models/ldm/stable-diffusion-v1/model.ckpt",
+        default="log_dir/now_project_name/checkpoints/last.ckpt",
         help="path to checkpoint of model",
     )    
     parser.add_argument(

@@ -284,14 +284,11 @@ def main():
                     for i in range(grid.size(0)):
                         png_number = 1
                         list_of_files = glob.glob(str(outpath) + '/*.png')
-                        print(list_of_files)
+        
                         if(len(list_of_files) > 0):
                             latest_file_path = max(list_of_files, key=os.path.getctime)
-                            print(latest_file_path)
                             latest_file_name = Path(latest_file_path).stem
-                            print(latest_file_name)
                             latest_file_number = int(latest_file_name.split('_')[-1])
-                            print(latest_file_number)
                             png_number = png_number + latest_file_number
 
                         save_image(grid[i, :, :, :], os.path.join(outpath, opt.filename.replace(" ", "-") + '_' + str(png_number) + '.png'))

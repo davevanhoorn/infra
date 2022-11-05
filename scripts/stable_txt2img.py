@@ -305,6 +305,7 @@ def main():
                         png_number = 1
         
                         if(len(list_of_files) > 0):
+                            list_of_files = glob.glob(str(outpath) + '/*.png')
                             latest_file_path = max(list_of_files, key=os.path.getctime)
                             latest_file_name = Path(latest_file_path).stem
                             latest_file_number = int(latest_file_name.split('_')[-1])

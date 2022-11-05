@@ -4,11 +4,13 @@ import os
 import pathlib
 import sys
 import time
+import zipfile
 from contextlib import contextmanager, nullcontext
 from itertools import islice
 from pathlib import Path
 
 import numpy as np
+import requests
 import torch
 from einops import rearrange
 from ldm.models.diffusion.ddim import DDIMSampler
@@ -277,13 +279,30 @@ def main():
                         if not opt.skip_grid:
                             all_samples.append(x_samples_ddim)
 
+                list_of_files = glob.glob(str(outpath) + '/*.png')
+
+                if(len(list_of_files) >= 5):
+                    print('More than 5 files')
+
+                    my_file = Path('images.zip')
+
+                    if not my_file.is_file():
+                        print('images.zip does not exist')
+                        with zipfile.ZipFile('images.zip', 'w') as img_zip:
+                            for image_path in list_of_files:
+                                img_name = os.path.basename(image_path)
+                                img_data = requests.get(image_path).content
+                                img_zip.writestr(img_name, img_data)
+
+                    print("Exiting - more than 5 images in directory and archive exists.")
+                    return
+
                 if not opt.skip_grid:
                     grid = torch.stack(all_samples, 0)
                     grid = rearrange(grid, 'n b c h w -> (n b) c h w')
                     
                     for i in range(grid.size(0)):
                         png_number = 1
-                        list_of_files = glob.glob(str(outpath) + '/*.png')
         
                         if(len(list_of_files) > 0):
                             latest_file_path = max(list_of_files, key=os.path.getctime)

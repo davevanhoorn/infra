@@ -281,8 +281,20 @@ def main():
                     grid = rearrange(grid, 'n b c h w -> (n b) c h w')
                     
                     for i in range(grid.size(0)):
-                        save_image(grid[i, :, :, :], os.path.join(outpath,opt.filename.replace(" ", "-")+'_{}.png'.format(i)))
-                    grid = make_grid(grid, nrow=n_rows)
+                        list_of_pngs = glob.glob(outpath+'*.png')
+                        print(list_of_pngs)
+                        latest_png_path = max(list_of_pngs, key=os.path.getctime)
+                        print(latest_png_path)
+                        latest_png_name = Path(latest_file).stem
+                        print(latest_png_name)
+
+                        if (latest_png_name):
+                            png_number = 1
+                        else:
+                            png_number = 2
+
+                        save_image(grid[i, :, :, :], os.path.join(outpath, opt.filename.replace(" ", "-") + '_' + png_number + '.png'))
+                    # grid = make_grid(grid, nrow=n_rows)
 
                     # to image
                     # grid = 255. * rearrange(grid, 'c h w -> h w c').cpu().numpy()

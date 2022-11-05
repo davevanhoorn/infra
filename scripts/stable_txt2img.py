@@ -247,6 +247,25 @@ def main():
                 tic = time.time()
                 all_samples = list()
                 for n in trange(opt.n_iter, desc="Sampling"):
+
+                    list_of_files = glob.glob(str(outpath) + '/*.png')
+
+                    if(len(list_of_files) >= 5):
+                        print('More than 5 files')
+
+                        my_file = Path('images.zip')
+
+                        if not my_file.is_file():
+                            print('images.zip does not exist')
+                            with zipfile.ZipFile('images.zip', 'w') as zf:
+                                for image_path in list_of_files:
+                                    image_file_name = Path(image_path).stem
+                                    print(image_file_name)
+                                    zf.write(image_path, arcname=image_file_name + '.png')
+
+                        print("Exiting - more than 5 images in directory and archive exists.")
+                        return
+
                     for prompts in tqdm(data, desc="data"):
                         uc = None
                         if opt.scale != 1.0:
@@ -277,24 +296,6 @@ def main():
 
                         if not opt.skip_grid:
                             all_samples.append(x_samples_ddim)
-
-                list_of_files = glob.glob(str(outpath) + '/*.png')
-
-                if(len(list_of_files) >= 5):
-                    print('More than 5 files')
-
-                    my_file = Path('images.zip')
-
-                    if not my_file.is_file():
-                        print('images.zip does not exist')
-                        with zipfile.ZipFile('images.zip', 'w') as zf:
-                            for image_path in list_of_files:
-                                image_file_name = Path(image_path).stem
-                                print(image_file_name)
-                                zf.write(image_path, arcname=image_file_name + '.png')
-
-                    print("Exiting - more than 5 images in directory and archive exists.")
-                    return
 
                 if not opt.skip_grid:
                     grid = torch.stack(all_samples, 0)

@@ -303,15 +303,31 @@ def main():
                     
                     for i in range(grid.size(0)):
                         png_number = 1
+                        list_of_files = glob.glob(str(outpath) + '/*.png')
         
                         if(len(list_of_files) > 0):
-                            list_of_files = glob.glob(str(outpath) + '/*.png')
                             latest_file_path = max(list_of_files, key=os.path.getctime)
                             latest_file_name = Path(latest_file_path).stem
                             latest_file_number = int(latest_file_name.split('_')[-1])
                             png_number = png_number + latest_file_number
 
                         save_image(grid[i, :, :, :], os.path.join(outpath, opt.filename.replace(" ", "-") + '_' + str(png_number) + '.png'))
+
+                        if(len(list_of_files) >= 50):
+                            print('More than 50 files')
+
+                            my_file = Path('output_images/images.zip')
+
+                            if not my_file.is_file():
+                                print('images.zip does not exist')
+                                with zipfile.ZipFile('output_images/images.zip', 'w') as zf:
+                                    for image_path in list_of_files:
+                                        image_file_name = Path(image_path).stem
+                                        print(image_file_name)
+                                        zf.write(image_path, arcname=image_file_name + '.png')
+
+                            print("Exiting - more than 50 images in directory and archive exists.")
+                            return
       
                 toc = time.time()
 

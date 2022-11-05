@@ -253,11 +253,11 @@ def main():
                     if(len(list_of_files) >= 5):
                         print('More than 5 files')
 
-                        my_file = Path('images.zip')
+                        my_file = Path('output_images/images.zip')
 
                         if not my_file.is_file():
                             print('images.zip does not exist')
-                            with zipfile.ZipFile('images.zip', 'w') as zf:
+                            with zipfile.ZipFile('output_images/images.zip', 'w') as zf:
                                 for image_path in list_of_files:
                                     image_file_name = Path(image_path).stem
                                     print(image_file_name)

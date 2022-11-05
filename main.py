@@ -157,7 +157,6 @@ def get_parser(**parser_kwargs):
     parser.add_argument(
         "--max_training_steps",
         type=int,
-        required=True,
         default=2000,
         help="Number of training steps to run")
 
@@ -165,7 +164,6 @@ def get_parser(**parser_kwargs):
         "--token",
         type=str,
         default="firstNameLastName",
-        required=True,
         help="Unique token you want to represent your trained model. Ex: firstNameLastName.")
 
     parser.add_argument("--token_only", 
@@ -177,13 +175,11 @@ def get_parser(**parser_kwargs):
 
     parser.add_argument("--actual_resume", 
         type=str,
-        required=True,
         default="model.ckpt",
         help="Path to model to actually resume from")
 
     parser.add_argument("--data_root", 
         type=str, 
-        required=True, 
         default="training_images",
         help="Path to directory with training images")
     

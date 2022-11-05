@@ -250,8 +250,8 @@ def main():
 
                     list_of_files = glob.glob(str(outpath) + '/*.png')
 
-                    if(len(list_of_files) >= 5):
-                        print('More than 5 files')
+                    if(len(list_of_files) >= 50):
+                        print('More than 50 files')
 
                         my_file = Path('output_images/images.zip')
 
@@ -263,7 +263,7 @@ def main():
                                     print(image_file_name)
                                     zf.write(image_path, arcname=image_file_name + '.png')
 
-                        print("Exiting - more than 5 images in directory and archive exists.")
+                        print("Exiting - more than 50 images in directory and archive exists.")
                         return
 
                     for prompts in tqdm(data, desc="data"):
